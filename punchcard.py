@@ -108,6 +108,8 @@ def punchcard(path, rows, cols, data, **kwargs):
     # punches
     lo = min(x for row in data for x in row if x)
     hi = max(x for row in data for x in row if x)
+    min_area = math.pi * (min_size / 2.0) ** 2
+    max_area = math.pi * (max_size / 2.0) ** 2
     for i, col in enumerate(cols):
         for j, row in enumerate(rows):
             value = data[j][i]
@@ -115,7 +117,8 @@ def punchcard(path, rows, cols, data, **kwargs):
                 continue
             pct = 1.0 * (value - lo) / (hi - lo)
             # pct = pct ** 0.5
-            radius = (pct * (max_size - min_size) + min_size) / 2.0
+            area = pct * (max_area - min_area) + min_area
+            radius = (area / math.pi) ** 0.5
             radius = int(round(radius))
             color = pct * (max_color - min_color) + min_color
             dc.set_source_rgb(color, color, color)
