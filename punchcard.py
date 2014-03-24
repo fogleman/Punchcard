@@ -17,6 +17,8 @@ TITLE_FONT = 'Helvetica'
 TITLE_FONT_SIZE = 20
 TITLE_FONT_BOLD = True
 
+DIAGONAL_COLUMN_LABELS = False
+
 def set_font(dc, name=None, size=None, bold=False):
     if name is not None:
         weight = cairo.FONT_WEIGHT_BOLD if bold else cairo.FONT_WEIGHT_NORMAL
@@ -39,6 +41,7 @@ def punchcard(path, rows, cols, data, **kwargs):
     title_font = kwargs.get('title_font', TITLE_FONT)
     title_font_size = kwargs.get('title_font_size', TITLE_FONT_SIZE)
     title_font_bold = kwargs.get('title_font_bold', TITLE_FONT_BOLD)
+    diagonal_column_labels = kwargs.get('diagonal_column_labels', DIAGONAL_COLUMN_LABELS)
     size = max_size + cell_padding * 2
     # measure text
     surface = cairo.ImageSurface(cairo.FORMAT_RGB24, 1, 1)
@@ -47,14 +50,21 @@ def punchcard(path, rows, cols, data, **kwargs):
     row_text_size = max(dc.text_extents(str(x))[2] for x in rows)
     col_text_size = max(dc.text_extents(str(x))[2] for x in cols)
     # generate punchcard
-    width = size * len(cols) + row_text_size + padding * 3
-    height = size * len(rows) + col_text_size + padding * 3
+    if diagonal_column_labels:
+        width = size * len(cols) + row_text_size + math.sin(math.pi / 4) * col_text_size + padding * 2
+        height = size * len(rows) + math.sin(math.pi / 4) * col_text_size + padding * 3
+    else:
+        width = size * len(cols) + row_text_size + padding * 3
+        height = size * len(rows) + col_text_size + padding * 3
     if title is not None:
         set_font(dc, title_font, title_font_size, title_font_bold)
         title_size = dc.text_extents(title)[2:4]
         height += title_size[1] + padding
     dx = row_text_size + padding * 2
-    dy = col_text_size + padding * 2
+    if diagonal_column_labels:
+        dy = math.sin(math.pi / 4) * col_text_size + padding * 2
+    else:
+        dy = col_text_size + padding * 2
     surface = cairo.ImageSurface(cairo.FORMAT_RGB24, int(width), int(height))
     dc = cairo.Context(surface)
     set_font(dc, font, font_size, font_bold)
@@ -67,10 +77,16 @@ def punchcard(path, rows, cols, data, **kwargs):
         col = str(col)
         tw, th = dc.text_extents(col)[2:4]
         x = dx + i * size + size / 2 + th / 2
-        y = padding + col_text_size
+        if diagonal_column_labels:
+            y = padding + math.sin(math.pi / 4) * col_text_size
+        else:
+            y = padding + col_text_size
         dc.save()
         dc.translate(x, y)
-        dc.rotate(-math.pi / 2)
+        if diagonal_column_labels:
+            dc.rotate(-math.pi / 4)
+        else:
+            dc.rotate(-math.pi / 2)
         dc.move_to(0, 0)
         dc.show_text(col)
         dc.restore()

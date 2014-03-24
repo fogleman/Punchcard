@@ -14,21 +14,22 @@ Generate GitHub-style punchcard charts with ease. Uses pycairo for rendering.
 
 The following keyword arguments are also allowed.
 
-| keyword         | default     | description                                |
-|-----------------|------------:|--------------------------------------------|
-|padding          |           12| padding between chart, labels and boundary |
-|cell_padding     |            4| padding between circles and cell edges     |
-|min_size         |            4| minimum circle size, for smallest value    |
-|max_size         |           32| maximum circle size, for largest value     |
-|min_color        |          0.8| grayscale value for smallest value         |
-|max_color        |          0.0| grayscale value for largest value          |
-|font             |  'Helvetica'| facename used for labels                   |
-|font_size        |           14| font size for labels                       |
-|font_bold        |        False| bold labels                                |
-|title            |         None| title text, optional                       |
-|title_font       |  'Helvetica'| facename used for title                    |
-|title_font_size  |           20| font size for title                        |
-|title_font_bold  |         True| bold title                                 |
+| keyword                | default     | description                                |
+|------------------------|------------:|--------------------------------------------|
+|padding                 |           12| padding between chart, labels and boundary |
+|cell_padding            |            4| padding between circles and cell edges     |
+|min_size                |            4| minimum circle size, for smallest value    |
+|max_size                |           32| maximum circle size, for largest value     |
+|min_color               |          0.8| grayscale value for smallest value         |
+|max_color               |          0.0| grayscale value for largest value          |
+|font                    |  'Helvetica'| facename used for labels                   |
+|font_size               |           14| font size for labels                       |
+|font_bold               |        False| bold labels                                |
+|title                   |         None| title text, optional                       |
+|title_font              |  'Helvetica'| facename used for title                    |
+|title_font_size         |           20| font size for title                        |
+|title_font_bold         |         True| bold title                                 |
+|diagonal_column_labels  |        False| diagonal column labels                     |
 
 ### Sample
 
