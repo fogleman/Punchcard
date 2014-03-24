@@ -9,3 +9,7 @@ Generate GitHub-style punchcard charts with ease. Uses pycairo for rendering.
 ### Programmatically
 
     punchcard(png_path, row_labels, col_labels, data)
+
+### Sample
+
+![Sample](http://i.imgur.com/3UtKP8d.png)
