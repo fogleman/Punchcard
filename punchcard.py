@@ -1,6 +1,6 @@
+from math import pi, sin
 import csv
 import cairo
-import math
 
 PADDING = 12
 CELL_PADDING = 4
@@ -41,7 +41,8 @@ def punchcard(path, rows, cols, data, **kwargs):
     title_font = kwargs.get('title_font', TITLE_FONT)
     title_font_size = kwargs.get('title_font_size', TITLE_FONT_SIZE)
     title_font_bold = kwargs.get('title_font_bold', TITLE_FONT_BOLD)
-    diagonal_column_labels = kwargs.get('diagonal_column_labels', DIAGONAL_COLUMN_LABELS)
+    diagonal_column_labels = kwargs.get(
+        'diagonal_column_labels', DIAGONAL_COLUMN_LABELS)
     size = max_size + cell_padding * 2
     # measure text
     surface = cairo.ImageSurface(cairo.FORMAT_RGB24, 1, 1)
@@ -51,8 +52,9 @@ def punchcard(path, rows, cols, data, **kwargs):
     col_text_size = max(dc.text_extents(str(x))[2] for x in cols)
     # generate punchcard
     if diagonal_column_labels:
-        width = size * len(cols) + row_text_size + math.sin(math.pi / 4) * col_text_size + padding * 2
-        height = size * len(rows) + math.sin(math.pi / 4) * col_text_size + padding * 3
+        width = size * len(cols) + row_text_size + padding * 3 + \
+            sin(pi / 4) * col_text_size
+        height = size * len(rows) + col_text_size * sin(pi / 4) + padding * 3
     else:
         width = size * len(cols) + row_text_size + padding * 3
         height = size * len(rows) + col_text_size + padding * 3
@@ -62,7 +64,7 @@ def punchcard(path, rows, cols, data, **kwargs):
         height += title_size[1] + padding
     dx = row_text_size + padding * 2
     if diagonal_column_labels:
-        dy = math.sin(math.pi / 4) * col_text_size + padding * 2
+        dy = sin(pi / 4) * col_text_size + padding * 2
     else:
         dy = col_text_size + padding * 2
     surface = cairo.ImageSurface(cairo.FORMAT_RGB24, int(width), int(height))
@@ -78,15 +80,15 @@ def punchcard(path, rows, cols, data, **kwargs):
         tw, th = dc.text_extents(col)[2:4]
         x = dx + i * size + size / 2 + th / 2
         if diagonal_column_labels:
-            y = padding + math.sin(math.pi / 4) * col_text_size
+            y = padding + sin(pi / 4) * col_text_size
         else:
             y = padding + col_text_size
         dc.save()
         dc.translate(x, y)
         if diagonal_column_labels:
-            dc.rotate(-math.pi / 4)
+            dc.rotate(-pi / 4)
         else:
-            dc.rotate(-math.pi / 2)
+            dc.rotate(-pi / 2)
         dc.move_to(0, 0)
         dc.show_text(col)
         dc.restore()
@@ -108,8 +110,8 @@ def punchcard(path, rows, cols, data, **kwargs):
     # punches
     lo = min(x for row in data for x in row if x)
     hi = max(x for row in data for x in row if x)
-    min_area = math.pi * (min_size / 2.0) ** 2
-    max_area = math.pi * (max_size / 2.0) ** 2
+    min_area = pi * (min_size / 2.0) ** 2
+    max_area = pi * (max_size / 2.0) ** 2
     for i, col in enumerate(cols):
         for j, row in enumerate(rows):
             value = data[j][i]
@@ -118,13 +120,13 @@ def punchcard(path, rows, cols, data, **kwargs):
             pct = 1.0 * (value - lo) / (hi - lo)
             # pct = pct ** 0.5
             area = pct * (max_area - min_area) + min_area
-            radius = (area / math.pi) ** 0.5
+            radius = (area / pi) ** 0.5
             radius = int(round(radius))
             color = pct * (max_color - min_color) + min_color
             dc.set_source_rgb(color, color, color)
             x = dx + i * size + size / 2
             y = dy + j * size + size / 2
-            dc.arc(x, y, radius, 0, 2 * math.pi)
+            dc.arc(x, y, radius, 0, 2 * pi)
             dc.fill()
     # title
     if title is not None:
