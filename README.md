@@ -10,6 +10,8 @@ Generate GitHub-style punchcard charts with ease. Uses pycairo for rendering.
 
     punchcard(png_path, row_labels, col_labels, data)
 
+`data` must be a two-dimensional array of data for the punchcard chart (a list of lists where each list is a row).
+
 ### Sample
 
 ![Sample](http://i.imgur.com/34wPmmB.png)
