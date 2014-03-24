@@ -12,4 +12,4 @@ Generate GitHub-style punchcard charts with ease. Uses pycairo for rendering.
 
 ### Sample
 
-![Sample](http://i.imgur.com/3UtKP8d.png)
+![Sample](http://i.imgur.com/34wPmmB.png)
