@@ -1,6 +1,6 @@
 ## Punchcard
 
-Generate GitHub-style punchcard charts with ease.
+Generate GitHub-style punchcard charts with ease. Uses pycairo for rendering.
 
 ### Command Line
 
