@@ -120,11 +120,20 @@ def punchcard(path, rows, cols, data, **kwargs):
 def punchcard_from_csv(csv_path, path, **kwargs):
     with open(csv_path, 'rb') as fp:
         reader = csv.reader(fp)
-        rows = list(reader)
-    row_labels = [x[0] for x in rows[1:]]
-    col_labels = rows[0][1:]
-    data = [map(float, x[1:]) for x in rows[1:]]
-    punchcard(path, row_labels, col_labels, data, **kwargs)
+        csv_rows = list(reader)
+    row_labels = [x[0] for x in csv_rows[1:]]
+    col_labels = csv_rows[0][1:]
+    rows = []
+    for csv_row in csv_rows[1:]:
+        row = []
+        for value in csv_row[1:]:
+            try:
+                value = float(value)
+            except ValueError:
+                value = None
+            row.append(value)
+        rows.append(row)
+    punchcard(path, row_labels, col_labels, rows, **kwargs)
 
 if __name__ == '__main__':
     import sys
