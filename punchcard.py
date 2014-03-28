@@ -114,11 +114,16 @@ def punchcard(path, rows, cols, data, **kwargs):
         dc.move_to(x, y)
         show_text(pc, layout, row)
     # grid
+    dc.set_source_rgb(0.5, 0.5, 0.5)
     for i, col in enumerate(cols):
         for j, row in enumerate(rows):
-            x = dx + i * size
-            y = dy + j * size
+            x = dx + i * size - 0.5
+            y = dy + j * size - 0.5
             dc.rectangle(x, y, size, size)
+    dc.stroke()
+    dc.set_source_rgb(0, 0, 0)
+    dc.set_line_width(3)
+    dc.rectangle(dx - 0.5, dy - 0.5, size * len(cols), size * len(rows))
     dc.stroke()
     # punches
     lo = min(x for row in data for x in row if x)
