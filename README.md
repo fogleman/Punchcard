@@ -2,6 +2,10 @@
 
 Generate GitHub-style punchcard charts with ease. Uses pycairo for rendering.
 
+### Dependencies
+
+    brew install py2cairo pango pygtk
+
 ### Command Line
 
     python punchcard.py input.csv output.png [title]
