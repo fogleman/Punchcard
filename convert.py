@@ -31,8 +31,8 @@ def process(path):
     cols = set()
     lookup = {}
     for row, col, value in csv_rows[1:]:
-        row = int(row)
-        col = int(col)
+        row = int(row) # disable this if row labels are not integers
+        col = int(col) # disable this if col labels are not integers
         rows.add(row)
         cols.add(col)
         lookup[(row, col)] = value
