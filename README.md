@@ -1,6 +1,8 @@
 ## Punchcard
 
-Generate GitHub-style punchcard charts with ease. Uses pycairo for rendering.
+Generate GitHub-style punchcard charts with ease.
+
+![Sample](http://i.imgur.com/YGJqNuN.png)
 
 ### Dependencies
 
@@ -34,7 +36,3 @@ The following keyword arguments are also allowed.
 |title_font_size         |           20| font size for title                        |
 |title_font_bold         |         True| bold title                                 |
 |diagonal_column_labels  |        False| diagonal column labels                     |
-
-### Sample
-
-![Sample](http://i.imgur.com/YGJqNuN.png)
