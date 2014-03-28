@@ -30,9 +30,13 @@ def process(path):
     rows = set()
     cols = set()
     lookup = {}
+    int_rows = all(x[0].isdigit() for x in csv_rows[1:])
+    int_cols = all(x[1].isdigit() for x in csv_rows[1:])
     for row, col, value in csv_rows[1:]:
-        #row = int(row) # disable this if row labels are not integers
-        #col = int(col) # disable this if col labels are not integers
+        if int_rows:
+            row = int(row)
+        if int_cols:
+            col = int(col)
         rows.add(row)
         cols.add(col)
         lookup[(row, col)] = value
