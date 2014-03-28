@@ -1,6 +1,8 @@
 from math import pi, sin
 import csv
 import cairo
+import pango
+import pangocairo
 
 PADDING = 12
 CELL_PADDING = 4
@@ -19,12 +21,19 @@ TITLE_FONT_BOLD = True
 
 DIAGONAL_COLUMN_LABELS = False
 
-def set_font(dc, name=None, size=None, bold=False):
-    if name is not None:
-        weight = cairo.FONT_WEIGHT_BOLD if bold else cairo.FONT_WEIGHT_NORMAL
-        dc.select_font_face(name, cairo.FONT_SLANT_NORMAL, weight)
-    if size is not None:
-        dc.set_font_size(size)
+def set_font(layout, name=None, size=None, bold=False):
+    weight = ' bold ' if bold else ' '
+    fd = pango.FontDescription('%s%s%d' % (name, weight, size))
+    layout.set_font_description(fd)
+
+def get_size(layout, text):
+    layout.set_text(str(text))
+    return layout.get_pixel_size()
+
+def show_text(pc, layout, text):
+    layout.set_text(str(text))
+    pc.update_layout(layout)
+    pc.show_layout(layout)
 
 def punchcard(path, rows, cols, data, **kwargs):
     # get options
@@ -47,9 +56,11 @@ def punchcard(path, rows, cols, data, **kwargs):
     # measure text
     surface = cairo.ImageSurface(cairo.FORMAT_RGB24, 1, 1)
     dc = cairo.Context(surface)
-    set_font(dc, font, font_size, font_bold)
-    row_text_size = max(dc.text_extents(str(x))[2] for x in rows)
-    col_text_size = max(dc.text_extents(str(x))[2] for x in cols)
+    pc = pangocairo.CairoContext(dc)
+    layout = pc.create_layout()
+    set_font(layout, font, font_size, font_bold)
+    row_text_size = max(get_size(layout, x)[0] for x in rows)
+    col_text_size = max(get_size(layout, x)[0] for x in cols)
     # generate punchcard
     if diagonal_column_labels:
         width = size * len(cols) + row_text_size + padding * 3 + \
@@ -59,8 +70,8 @@ def punchcard(path, rows, cols, data, **kwargs):
         width = size * len(cols) + row_text_size + padding * 3
         height = size * len(rows) + col_text_size + padding * 3
     if title is not None:
-        set_font(dc, title_font, title_font_size, title_font_bold)
-        title_size = dc.text_extents(title)[2:4]
+        set_font(layout, title_font, title_font_size, title_font_bold)
+        title_size = get_size(layout, title)
         height += title_size[1] + padding
     dx = row_text_size + padding * 2
     if diagonal_column_labels:
@@ -69,7 +80,9 @@ def punchcard(path, rows, cols, data, **kwargs):
         dy = col_text_size + padding * 2
     surface = cairo.ImageSurface(cairo.FORMAT_RGB24, int(width), int(height))
     dc = cairo.Context(surface)
-    set_font(dc, font, font_size, font_bold)
+    pc = pangocairo.CairoContext(dc)
+    layout = pc.create_layout()
+    set_font(layout, font, font_size, font_bold)
     dc.set_source_rgb(1, 1, 1)
     dc.paint()
     dc.set_source_rgb(0, 0, 0)
@@ -77,8 +90,8 @@ def punchcard(path, rows, cols, data, **kwargs):
     # column labels
     for i, col in enumerate(cols):
         col = str(col)
-        tw, th = dc.text_extents(col)[2:4]
-        x = dx + i * size + size / 2 + th / 2
+        tw, th = get_size(layout, col)
+        x = dx + i * size + size / 2 - th / 2
         if diagonal_column_labels:
             y = padding + sin(pi / 4) * col_text_size
         else:
@@ -90,16 +103,16 @@ def punchcard(path, rows, cols, data, **kwargs):
         else:
             dc.rotate(-pi / 2)
         dc.move_to(0, 0)
-        dc.show_text(col)
+        show_text(pc, layout, col)
         dc.restore()
     # row labels
     for j, row in enumerate(rows):
         row = str(row)
-        tw, th = dc.text_extents(row)[2:4]
+        tw, th = get_size(layout, row)
         x = padding + row_text_size - tw
-        y = dy + j * size + size / 2 + th / 2
+        y = dy + j * size + size / 2 - th / 2
         dc.move_to(x, y)
-        dc.show_text(row)
+        show_text(pc, layout, row)
     # grid
     for i, col in enumerate(cols):
         for j, row in enumerate(rows):
@@ -131,11 +144,11 @@ def punchcard(path, rows, cols, data, **kwargs):
     # title
     if title is not None:
         dc.set_source_rgb(0, 0, 0)
-        set_font(dc, title_font, title_font_size, title_font_bold)
+        set_font(layout, title_font, title_font_size, title_font_bold)
         x = dx + size * len(cols) / 2 - title_size[0] / 2
-        y = height - padding
+        y = height - padding - title_size[1]
         dc.move_to(x, y)
-        dc.show_text(title)
+        show_text(pc, layout, title)
     surface.write_to_png(path)
 
 def punchcard_from_csv(csv_path, path, **kwargs):
