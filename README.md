@@ -33,4 +33,4 @@ The following keyword arguments are also allowed.
 
 ### Sample
 
-![Sample](http://i.imgur.com/34wPmmB.png)
+![Sample](http://i.imgur.com/YGJqNuN.png)
