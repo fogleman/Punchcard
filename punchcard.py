@@ -12,10 +12,10 @@ DEFAULTS = {
     'max_size': 32,
     'min_color': 0.8,
     'max_color': 0.0,
-    'title': None,
     'font': 'Helvetica',
     'font_size': 14,
     'font_bold': False,
+    'title': None,
     'title_font': 'Helvetica',
     'title_font_size': 20,
     'title_font_bold': True,
@@ -50,15 +50,15 @@ class ColLabels(sizers.Box):
         text = Text()
         text.set_font(
             self.model.font, self.model.font_size, self.model.font_bold)
-        width = len(self.model.data[0]) * self.model.cell_size
+        width = self.model.width
         height = 0
         for i, col in enumerate(self.model.col_labels):
             tw, th = text.measure(col)
             if self.model.diagonal_column_labels:
                 x = i * self.model.cell_size + th / 2
-                w = tw * sin(pi / 4)
-                width = max(width, x + w + self.model.padding)
-                height = max(height, tw * sin(pi / 4) + self.model.padding)
+                w = (tw + th / 2) * sin(pi / 4)
+                width = max(width, x + w)
+                height = max(height, w)
             else:
                 height = max(height, tw)
         return (width, height)
@@ -75,7 +75,7 @@ class ColLabels(sizers.Box):
             y = self.bottom
             dc.save()
             if self.model.diagonal_column_labels:
-                dc.translate(x, y - self.model.padding / 2)
+                dc.translate(x, y - th * sin(pi / 4) / 2)
                 dc.rotate(-pi / 4)
             else:
                 dc.translate(x, y)
@@ -95,7 +95,7 @@ class RowLabels(sizers.Box):
         text.set_font(
             self.model.font, self.model.font_size, self.model.font_bold)
         width = max(text.measure(x)[0] for x in self.model.row_labels)
-        height = len(self.model.data) * self.model.cell_size
+        height = self.model.height
         return (width, height)
     def render(self, dc):
         if self.model.row_labels is None:
@@ -116,21 +116,16 @@ class Chart(sizers.Box):
         super(Chart, self).__init__()
         self.model = model
     def get_min_size(self):
-        rows = len(self.model.data)
-        cols = len(self.model.data[0])
-        size = self.model.cell_size
-        return (cols * size, rows * size)
+        return (self.model.width, self.model.height)
     def render(self, dc):
         self.render_grid(dc)
         self.render_punches(dc)
     def render_grid(self, dc):
-        rows = len(self.model.data)
-        cols = len(self.model.data[0])
         size = self.model.cell_size
         dc.set_source_rgb(0.5, 0.5, 0.5)
         dc.set_line_width(1)
-        for i in range(cols):
-            for j in range(rows):
+        for i in range(self.model.cols):
+            for j in range(self.model.rows):
                 x = self.x + i * size - 0.5
                 y = self.y + j * size - 0.5
                 dc.rectangle(x, y, size, size)
@@ -142,8 +137,6 @@ class Chart(sizers.Box):
         dc.stroke()
     def render_punches(self, dc):
         data = self.model.data
-        rows = len(self.model.data)
-        cols = len(self.model.data[0])
         size = self.model.cell_size
         lo = min(x for row in data for x in row if x)
         hi = max(x for row in data for x in row if x)
@@ -151,8 +144,8 @@ class Chart(sizers.Box):
         max_area = pi * (self.model.max_size / 2.0) ** 2
         min_color = self.model.min_color
         max_color = self.model.max_color
-        for i in range(cols):
-            for j in range(rows):
+        for i in range(self.model.cols):
+            for j in range(self.model.rows):
                 value = data[j][i]
                 if not value:
                     continue
@@ -189,8 +182,7 @@ class Title(sizers.Box):
             self.model.title_font, self.model.title_font_size,
             self.model.title_font_bold)
         tw, th = text.measure(self.model.title)
-        width = len(self.model.data[0]) * self.model.cell_size
-        x = max(self.x, self.x + width / 2 - tw / 2)
+        x = max(self.x, self.x + self.model.width / 2 - tw / 2)
         y = self.cy - th / 2
         dc.move_to(x, y)
         text.render(self.model.title)
@@ -204,6 +196,10 @@ class Model(object):
             value = kwargs.get(key, value)
             setattr(self, key, value)
         self.cell_size = self.max_size + self.cell_padding * 2
+        self.rows = len(self.data)
+        self.cols = len(self.data[0])
+        self.width = self.cols * self.cell_size
+        self.height = self.rows * self.cell_size
     def render(self):
         col_labels = ColLabels(self)
         row_labels = RowLabels(self)
