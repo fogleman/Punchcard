@@ -24,10 +24,8 @@ DEFAULTS = {
 
 class Text(object):
     def __init__(self, dc=None):
-        if dc is None:
-            surface = cairo.ImageSurface(cairo.FORMAT_RGB24, 1, 1)
-            dc = cairo.Context(surface)
-        self.dc = dc
+        self.dc = dc or cairo.Context(
+            cairo.ImageSurface(cairo.FORMAT_RGB24, 1, 1))
         self.pc = pangocairo.CairoContext(self.dc)
         self.layout = self.pc.create_layout()
     def set_font(self, name, size, bold):
@@ -192,7 +190,7 @@ class Title(sizers.Box):
             self.model.title_font_bold)
         tw, th = text.measure(self.model.title)
         width = len(self.model.data[0]) * self.model.cell_size
-        x = self.x + width / 2 - tw / 2
+        x = max(self.x, self.x + width / 2 - tw / 2)
         y = self.cy - th / 2
         dc.move_to(x, y)
         text.render(self.model.title)
