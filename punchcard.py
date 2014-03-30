@@ -211,13 +211,13 @@ class Model(object):
         row_labels = RowLabels(self)
         chart = Chart(self)
         title = Title(self)
-        grid = sizers.GridSizer(3, 2)
+        grid = sizers.GridSizer(3, 2, self.padding, self.padding)
         grid.add_spacer()
-        grid.add(col_labels, border=(self.padding, 0))
-        grid.add(row_labels, border=(0, self.padding))
-        grid.add(chart, border=self.padding)
+        grid.add(col_labels)
+        grid.add(row_labels)
+        grid.add(chart)
         grid.add_spacer()
-        grid.add(title, border=(self.padding, 0))
+        grid.add(title)
         sizer = sizers.VerticalSizer()
         sizer.add(grid, border=self.padding)
         sizer.fit()
@@ -232,8 +232,8 @@ class Model(object):
         title.render(dc)
         return surface
 
-def punchcard(path, rows, cols, data, **kwargs):
-    model = Model(data, rows, cols, **kwargs)
+def punchcard(path, data, row_labels, col_labels, **kwargs):
+    model = Model(data, row_labels, col_labels, **kwargs)
     surface = model.render()
     surface.write_to_png(path)
 
@@ -243,7 +243,7 @@ def punchcard_from_csv(csv_path, path, **kwargs):
         csv_rows = list(reader)
     row_labels = [x[0] for x in csv_rows[1:]]
     col_labels = csv_rows[0][1:]
-    rows = []
+    data = []
     for csv_row in csv_rows[1:]:
         row = []
         for value in csv_row[1:]:
@@ -252,8 +252,8 @@ def punchcard_from_csv(csv_path, path, **kwargs):
             except ValueError:
                 value = None
             row.append(value)
-        rows.append(row)
-    punchcard(path, row_labels, col_labels, rows, **kwargs)
+        data.append(row)
+    punchcard(path, data, row_labels, col_labels, **kwargs)
 
 if __name__ == '__main__':
     import sys

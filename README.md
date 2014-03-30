@@ -14,7 +14,7 @@ Generate GitHub-style punchcard charts with ease.
 
 ### Programmatically
 
-    punchcard(png_path, row_labels, col_labels, data)
+    punchcard(png_path, data, row_labels, col_labels)
 
 `data` must be a two-dimensional array of data for the punchcard chart (a list of lists where each list is a row). `len(data) == len(row_labels)` and `len(data[0]) == len(col_labels)`
 
