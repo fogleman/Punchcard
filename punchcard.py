@@ -3,157 +3,238 @@ import csv
 import cairo
 import pango
 import pangocairo
+import sizers
 
-PADDING = 12
-CELL_PADDING = 4
-MIN_SIZE = 4
-MAX_SIZE = 32
-MIN_COLOR = 0.8
-MAX_COLOR = 0.0
+DEFAULTS = {
+    'padding': 12,
+    'cell_padding': 4,
+    'min_size': 4,
+    'max_size': 32,
+    'min_color': 0.8,
+    'max_color': 0.0,
+    'title': None,
+    'font': 'Helvetica',
+    'font_size': 14,
+    'font_bold': False,
+    'title_font': 'Helvetica',
+    'title_font_size': 20,
+    'title_font_bold': True,
+    'diagonal_column_labels': False,
+}
 
-FONT = 'Helvetica'
-FONT_SIZE = 14
-FONT_BOLD = False
+class Text(object):
+    def __init__(self, dc=None):
+        if dc is None:
+            surface = cairo.ImageSurface(cairo.FORMAT_RGB24, 1, 1)
+            dc = cairo.Context(surface)
+        self.dc = dc
+        self.pc = pangocairo.CairoContext(self.dc)
+        self.layout = self.pc.create_layout()
+    def set_font(self, name, size, bold):
+        weight = ' bold ' if bold else ' '
+        fd = pango.FontDescription('%s%s%d' % (name, weight, size))
+        self.layout.set_font_description(fd)
+    def measure(self, text):
+        self.layout.set_text(str(text))
+        return self.layout.get_pixel_size()
+    def render(self, text):
+        self.layout.set_text(str(text))
+        self.pc.update_layout(self.layout)
+        self.pc.show_layout(self.layout)
 
-TITLE_FONT = 'Helvetica'
-TITLE_FONT_SIZE = 20
-TITLE_FONT_BOLD = True
+class ColLabels(sizers.Box):
+    def __init__(self, model):
+        super(ColLabels, self).__init__()
+        self.model = model
+    def get_min_size(self):
+        if self.model.col_labels is None:
+            return (0, 0)
+        text = Text()
+        text.set_font(
+            self.model.font, self.model.font_size, self.model.font_bold)
+        width = len(self.model.data[0]) * self.model.cell_size
+        height = 0
+        for i, col in enumerate(self.model.col_labels):
+            tw, th = text.measure(col)
+            if self.model.diagonal_column_labels:
+                x = i * self.model.cell_size + th / 2
+                w = tw * sin(pi / 4)
+                width = max(width, x + w + self.model.padding)
+                height = max(height, tw * sin(pi / 4) + self.model.padding)
+            else:
+                height = max(height, tw)
+        return (width, height)
+    def render(self, dc):
+        if self.model.col_labels is None:
+            return
+        dc.set_source_rgb(0, 0, 0)
+        text = Text(dc)
+        text.set_font(
+            self.model.font, self.model.font_size, self.model.font_bold)
+        for i, col in enumerate(self.model.col_labels):
+            tw, th = text.measure(col)
+            x = self.x + i * self.model.cell_size + th / 2
+            y = self.bottom
+            dc.save()
+            if self.model.diagonal_column_labels:
+                dc.translate(x, y - self.model.padding / 2)
+                dc.rotate(-pi / 4)
+            else:
+                dc.translate(x, y)
+                dc.rotate(-pi / 2)
+            dc.move_to(0, 0)
+            text.render(col)
+            dc.restore()
 
-DIAGONAL_COLUMN_LABELS = False
+class RowLabels(sizers.Box):
+    def __init__(self, model):
+        super(RowLabels, self).__init__()
+        self.model = model
+    def get_min_size(self):
+        if self.model.row_labels is None:
+            return (0, 0)
+        text = Text()
+        text.set_font(
+            self.model.font, self.model.font_size, self.model.font_bold)
+        width = max(text.measure(x)[0] for x in self.model.row_labels)
+        height = len(self.model.data) * self.model.cell_size
+        return (width, height)
+    def render(self, dc):
+        if self.model.row_labels is None:
+            return
+        dc.set_source_rgb(0, 0, 0)
+        text = Text(dc)
+        text.set_font(
+            self.model.font, self.model.font_size, self.model.font_bold)
+        for i, row in enumerate(self.model.row_labels):
+            tw, th = text.measure(row)
+            x = self.right - tw
+            y = self.y + i * self.model.cell_size + th / 2
+            dc.move_to(x, y)
+            text.render(row)
 
-def set_font(layout, name=None, size=None, bold=False):
-    weight = ' bold ' if bold else ' '
-    fd = pango.FontDescription('%s%s%d' % (name, weight, size))
-    layout.set_font_description(fd)
+class Chart(sizers.Box):
+    def __init__(self, model):
+        super(Chart, self).__init__()
+        self.model = model
+    def get_min_size(self):
+        rows = len(self.model.data)
+        cols = len(self.model.data[0])
+        size = self.model.cell_size
+        return (cols * size, rows * size)
+    def render(self, dc):
+        self.render_grid(dc)
+        self.render_punches(dc)
+    def render_grid(self, dc):
+        rows = len(self.model.data)
+        cols = len(self.model.data[0])
+        size = self.model.cell_size
+        dc.set_source_rgb(0.5, 0.5, 0.5)
+        dc.set_line_width(1)
+        for i in range(cols):
+            for j in range(rows):
+                x = self.x + i * size - 0.5
+                y = self.y + j * size - 0.5
+                dc.rectangle(x, y, size, size)
+        dc.stroke()
+        dc.set_source_rgb(0, 0, 0)
+        dc.set_line_width(3)
+        width, height = self.get_min_size()
+        dc.rectangle(self.x - 0.5, self.y - 0.5, width, height)
+        dc.stroke()
+    def render_punches(self, dc):
+        data = self.model.data
+        rows = len(self.model.data)
+        cols = len(self.model.data[0])
+        size = self.model.cell_size
+        lo = min(x for row in data for x in row if x)
+        hi = max(x for row in data for x in row if x)
+        min_area = pi * (self.model.min_size / 2.0) ** 2
+        max_area = pi * (self.model.max_size / 2.0) ** 2
+        min_color = self.model.min_color
+        max_color = self.model.max_color
+        for i in range(cols):
+            for j in range(rows):
+                value = data[j][i]
+                if not value:
+                    continue
+                pct = 1.0 * (value - lo) / (hi - lo)
+                # pct = pct ** 0.5
+                area = pct * (max_area - min_area) + min_area
+                radius = (area / pi) ** 0.5
+                radius = int(round(radius))
+                color = pct * (max_color - min_color) + min_color
+                dc.set_source_rgb(color, color, color)
+                x = self.x + i * size + size / 2
+                y = self.y + j * size + size / 2
+                dc.arc(x, y, radius, 0, 2 * pi)
+                dc.fill()
 
-def get_size(layout, text):
-    layout.set_text(str(text))
-    return layout.get_pixel_size()
+class Title(sizers.Box):
+    def __init__(self, model):
+        super(Title, self).__init__()
+        self.model = model
+    def get_min_size(self):
+        if self.model.title is None:
+            return (0, 0)
+        text = Text()
+        text.set_font(
+            self.model.title_font, self.model.title_font_size,
+            self.model.title_font_bold)
+        return text.measure(self.model.title)
+    def render(self, dc):
+        if self.model.title is None:
+            return
+        dc.set_source_rgb(0, 0, 0)
+        text = Text(dc)
+        text.set_font(
+            self.model.title_font, self.model.title_font_size,
+            self.model.title_font_bold)
+        tw, th = text.measure(self.model.title)
+        width = len(self.model.data[0]) * self.model.cell_size
+        x = self.x + width / 2 - tw / 2
+        y = self.cy - th / 2
+        dc.move_to(x, y)
+        text.render(self.model.title)
 
-def show_text(pc, layout, text):
-    layout.set_text(str(text))
-    pc.update_layout(layout)
-    pc.show_layout(layout)
+class Model(object):
+    def __init__(self, data, row_labels=None, col_labels=None, **kwargs):
+        self.data = data
+        self.row_labels = row_labels
+        self.col_labels = col_labels
+        for key, value in DEFAULTS.items():
+            value = kwargs.get(key, value)
+            setattr(self, key, value)
+        self.cell_size = self.max_size + self.cell_padding * 2
+    def render(self):
+        col_labels = ColLabels(self)
+        row_labels = RowLabels(self)
+        chart = Chart(self)
+        title = Title(self)
+        grid = sizers.GridSizer(3, 2)
+        grid.add_spacer()
+        grid.add(col_labels, border=(self.padding, 0))
+        grid.add(row_labels, border=(0, self.padding))
+        grid.add(chart, border=self.padding)
+        grid.add_spacer()
+        grid.add(title, border=(self.padding, 0))
+        sizer = sizers.VerticalSizer()
+        sizer.add(grid, border=self.padding)
+        sizer.fit()
+        surface = cairo.ImageSurface(
+            cairo.FORMAT_RGB24, int(sizer.width), int(sizer.height))
+        dc = cairo.Context(surface)
+        dc.set_source_rgb(1, 1, 1)
+        dc.paint()
+        col_labels.render(dc)
+        row_labels.render(dc)
+        chart.render(dc)
+        title.render(dc)
+        return surface
 
 def punchcard(path, rows, cols, data, **kwargs):
-    # get options
-    padding = kwargs.get('padding', PADDING)
-    cell_padding = kwargs.get('cell_padding', CELL_PADDING)
-    min_size = kwargs.get('min_size', MIN_SIZE)
-    max_size = kwargs.get('max_size', MAX_SIZE)
-    min_color = kwargs.get('min_color', MIN_COLOR)
-    max_color = kwargs.get('max_color', MAX_COLOR)
-    title = kwargs.get('title', None)
-    font = kwargs.get('font', FONT)
-    font_size = kwargs.get('font_size', FONT_SIZE)
-    font_bold = kwargs.get('font_bold', FONT_BOLD)
-    title_font = kwargs.get('title_font', TITLE_FONT)
-    title_font_size = kwargs.get('title_font_size', TITLE_FONT_SIZE)
-    title_font_bold = kwargs.get('title_font_bold', TITLE_FONT_BOLD)
-    diagonal_column_labels = kwargs.get(
-        'diagonal_column_labels', DIAGONAL_COLUMN_LABELS)
-    size = max_size + cell_padding * 2
-    # measure text
-    surface = cairo.ImageSurface(cairo.FORMAT_RGB24, 1, 1)
-    dc = cairo.Context(surface)
-    pc = pangocairo.CairoContext(dc)
-    layout = pc.create_layout()
-    set_font(layout, font, font_size, font_bold)
-    row_text_size = max(get_size(layout, x)[0] for x in rows)
-    col_text_size = max(get_size(layout, x)[0] for x in cols)
-    # generate punchcard
-    if diagonal_column_labels:
-        width = size * len(cols) + row_text_size + padding * 3 + \
-            sin(pi / 4) * col_text_size
-        height = size * len(rows) + col_text_size * sin(pi / 4) + padding * 3
-    else:
-        width = size * len(cols) + row_text_size + padding * 3
-        height = size * len(rows) + col_text_size + padding * 3
-    if title is not None:
-        set_font(layout, title_font, title_font_size, title_font_bold)
-        title_size = get_size(layout, title)
-        height += title_size[1] + padding
-    dx = row_text_size + padding * 2
-    if diagonal_column_labels:
-        dy = sin(pi / 4) * col_text_size + padding * 2
-    else:
-        dy = col_text_size + padding * 2
-    surface = cairo.ImageSurface(cairo.FORMAT_RGB24, int(width), int(height))
-    dc = cairo.Context(surface)
-    pc = pangocairo.CairoContext(dc)
-    layout = pc.create_layout()
-    set_font(layout, font, font_size, font_bold)
-    dc.set_source_rgb(1, 1, 1)
-    dc.paint()
-    dc.set_source_rgb(0, 0, 0)
-    dc.set_line_width(1)
-    # column labels
-    for i, col in enumerate(cols):
-        col = str(col)
-        tw, th = get_size(layout, col)
-        x = dx + i * size + size / 2 - th / 2
-        if diagonal_column_labels:
-            y = padding + sin(pi / 4) * col_text_size
-        else:
-            y = padding + col_text_size
-        dc.save()
-        dc.translate(x, y)
-        if diagonal_column_labels:
-            dc.rotate(-pi / 4)
-        else:
-            dc.rotate(-pi / 2)
-        dc.move_to(0, 0)
-        show_text(pc, layout, col)
-        dc.restore()
-    # row labels
-    for j, row in enumerate(rows):
-        row = str(row)
-        tw, th = get_size(layout, row)
-        x = padding + row_text_size - tw
-        y = dy + j * size + size / 2 - th / 2
-        dc.move_to(x, y)
-        show_text(pc, layout, row)
-    # grid
-    dc.set_source_rgb(0.5, 0.5, 0.5)
-    for i, col in enumerate(cols):
-        for j, row in enumerate(rows):
-            x = dx + i * size - 0.5
-            y = dy + j * size - 0.5
-            dc.rectangle(x, y, size, size)
-    dc.stroke()
-    dc.set_source_rgb(0, 0, 0)
-    dc.set_line_width(3)
-    dc.rectangle(dx - 0.5, dy - 0.5, size * len(cols), size * len(rows))
-    dc.stroke()
-    # punches
-    lo = min(x for row in data for x in row if x)
-    hi = max(x for row in data for x in row if x)
-    min_area = pi * (min_size / 2.0) ** 2
-    max_area = pi * (max_size / 2.0) ** 2
-    for i, col in enumerate(cols):
-        for j, row in enumerate(rows):
-            value = data[j][i]
-            if not value:
-                continue
-            pct = 1.0 * (value - lo) / (hi - lo)
-            # pct = pct ** 0.5
-            area = pct * (max_area - min_area) + min_area
-            radius = (area / pi) ** 0.5
-            radius = int(round(radius))
-            color = pct * (max_color - min_color) + min_color
-            dc.set_source_rgb(color, color, color)
-            x = dx + i * size + size / 2
-            y = dy + j * size + size / 2
-            dc.arc(x, y, radius, 0, 2 * pi)
-            dc.fill()
-    # title
-    if title is not None:
-        dc.set_source_rgb(0, 0, 0)
-        set_font(layout, title_font, title_font_size, title_font_bold)
-        x = dx + size * len(cols) / 2 - title_size[0] / 2
-        y = height - padding - title_size[1]
-        dc.move_to(x, y)
-        show_text(pc, layout, title)
+    model = Model(data, rows, cols, **kwargs)
+    surface = model.render()
     surface.write_to_png(path)
 
 def punchcard_from_csv(csv_path, path, **kwargs):
