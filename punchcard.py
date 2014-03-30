@@ -153,11 +153,10 @@ class Chart(sizers.Box):
                 # pct = pct ** 0.5
                 area = pct * (max_area - min_area) + min_area
                 radius = (area / pi) ** 0.5
-                radius = int(round(radius))
                 color = pct * (max_color - min_color) + min_color
                 dc.set_source_rgb(color, color, color)
-                x = self.x + i * size + size / 2
-                y = self.y + j * size + size / 2
+                x = self.x + i * size + size / 2 - 0.5
+                y = self.y + j * size + size / 2 - 0.5
                 dc.arc(x, y, radius, 0, 2 * pi)
                 dc.fill()
 
