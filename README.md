@@ -2,7 +2,9 @@
 
 Generate GitHub-style punchcard charts with ease.
 
-![Sample](http://i.imgur.com/YGJqNuN.png)
+    python punchcard.py sample.csv output.png "Sample Chart"
+
+![Sample](http://i.imgur.com/I50Rejy.png)
 
 ### Dependencies
 
